@@ -26,872 +26,928 @@
 <body class="bg-slate-900 text-gray-100 min-h-screen p-4 sm:p-8">
 
     <!-- Main Application Container -->
-    <div id="app" class="max-w-4xl mx-auto">
-        <header class="mb-8 text-center relative">
-            <h1 class="text-4xl font-extrabold text-indigo-400">Team Shift Rota</h1>
-            <p class="mt-2 text-gray-400 text-sm sm:text-base">View available shifts and sign up in real-time. 
-                <span class="inline-block mt-1 sm:mt-0">
-                    <span id="user-role-label" class="font-semibold text-xs">Role: Loading...</span> | 
-                    User ID: <span id="user-id" class="font-mono text-xs bg-slate-800 p-1 rounded">Loading...</span>
-                </span>
-            </p>
-            
-            <!-- Admin Login Button (Moved to top-right corner) -->
-            <button id="open-admin-login" class="absolute top-0 right-0 p-3 rounded-full bg-slate-700 hover:bg-slate-600 transition duration-150 shadow-lg" title="Admin Login">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6-4h12m-6-4h.01M12 12a2 2 0 100-4 2 2 0 000 4zm7-4h1a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h1M4 16v-4h16v4"/>
-                </svg>
-            </button>
+    <div id="app" class="max-w-6xl mx-auto">
+        
+        <!-- Header Section -->
+        <header class="flex justify-between items-start mb-6 border-b border-indigo-500/50 pb-4">
+            <div>
+                <h1 class="text-4xl font-extrabold text-indigo-400 tracking-tight">Team Shift Rota</h1>
+                <p id="user-status" class="text-sm mt-1 text-slate-400">
+                    Role: <span id="current-user-role" class="font-semibold text-gray-300">User</span> | 
+                    Your ID: <span id="user-id-display" class="text-xs text-slate-500 font-mono select-all">Loading...</span>
+                </p>
+            </div>
 
+            <!-- Admin Login Button -->
+            <button id="admin-login-button" class="flex items-center space-x-2 text-slate-400 hover:text-indigo-400 transition">
+                <span id="admin-action-text">Admin Login</span>
+                <!-- SVG Icon for Admin/Logout (Key/Lock) -->
+                <svg id="admin-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M14.5 19H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7.5"/><path d="M12 17h.01"/><circle cx="17.5" cy="17.5" r="4.5"/></svg>
+            </button>
         </header>
 
-        <!-- Calendar Navigation and Controls -->
-        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 p-4 bg-slate-800 rounded-2xl shadow-xl">
-            <div class="flex space-x-4 mb-4 sm:mb-0">
-                <button id="prev-month" class="p-2 rounded-full bg-indigo-600 hover:bg-indigo-500 transition duration-150 shadow-md">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        <!-- Message Box (Alert/Error) -->
+        <div id="message-box" class="hidden fixed top-4 left-1/2 transform -translate-x-1/2 z-50 p-4 rounded-lg shadow-2xl transition-opacity duration-300" role="alert"></div>
+
+        <!-- Calendar Navigation and Add Shift Button -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 bg-slate-800 p-4 rounded-lg shadow-xl">
+            <div class="flex items-center space-x-4 mb-4 sm:mb-0">
+                <button id="prev-month" class="p-2 rounded-full text-indigo-400 hover:bg-slate-700 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 </button>
-                <button id="next-month" class="p-2 rounded-full bg-indigo-600 hover:bg-indigo-500 transition duration-150 shadow-md">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                <h2 id="current-month-year" class="text-2xl font-bold text-gray-100">Loading...</h2>
+                <button id="next-month" class="p-2 rounded-full text-indigo-400 hover:bg-slate-700 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </button>
             </div>
-            <h2 id="current-month-year" class="text-xl sm:text-2xl font-semibold text-white"></h2>
             
-            <!-- Add Shift Button (Visibility controlled by admin status) -->
-            <button id="open-shift-modal" class="mt-4 sm:mt-0 px-6 py-2 bg-green-600 hover:bg-green-500 rounded-xl font-medium shadow-md transition duration-150 text-sm sm:text-base hidden">
+            <!-- Admin-only Add Shift Button -->
+            <button id="add-shift-button" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-200">
                 + Add New Shift
             </button>
         </div>
 
         <!-- Calendar Grid -->
-        <div class="bg-slate-800 p-2 sm:p-4 rounded-2xl shadow-2xl">
-            <div class="grid grid-cols-7 text-center font-bold text-xs sm:text-sm mb-2 text-indigo-300">
-                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span class="text-red-400">Sat</span><span class="text-red-400">Sun</span>
-            </div>
-            <div id="calendar-grid" class="grid grid-cols-7 gap-1 custom-scroll" style="min-height: 400px;">
-                <!-- Calendar Days will be inserted here by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Shifts Detail/Sign-up/Cancellation Modal -->
-        <div id="shift-detail-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50">
-            <div class="bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-md transform transition-all">
-                <h3 id="modal-title" class="text-2xl font-bold mb-4 text-white">Shift Details</h3>
-                <div id="modal-shift-info" class="mb-4">
-                    <!-- Shift details populated here -->
-                </div>
-                
-                <!-- Sign-up List and Slots Count -->
-                <div id="filled-info-container" class="space-y-4 hidden">
-                    <p class="text-lg text-indigo-400 font-semibold">Current Sign-Ups (<span id="slots-count"></span>):</p>
-                    <ul id="signed-up-list" class="space-y-2 max-h-40 overflow-y-auto custom-scroll">
-                        <!-- List of sign-ups populated here -->
-                    </ul>
-                </div>
-                <!-- END NEW -->
-
-                <div id="signup-form-container" class="space-y-4 pt-4">
-                    <input type="text" id="signup-name" placeholder="Your Name" class="w-full p-3 bg-slate-700 rounded-xl border border-slate-600 focus:ring-indigo-500 focus:border-indigo-500 text-white" required>
-                    <button id="sign-up-button" class="w-full p-3 bg-green-600 hover:bg-green-500 rounded-xl font-bold transition duration-150 shadow-lg">Sign Up for this Shift</button>
-                </div>
-
-                <!-- Messages and Action Buttons -->
-                <p id="can-cancel-message" class="text-sm text-red-400 mb-4 hidden"></p>
-
-                <div class="pt-4 space-y-3">
-                    <button id="cancel-sign-up-button" class="w-full p-3 bg-red-600 hover:bg-red-500 rounded-xl font-bold transition duration-150 hidden shadow-lg">Cancel My Sign-Up</button>
-                    <!-- Admin action to clear ALL sign-ups -->
-                    <button id="super-cancel-button" class="w-full p-3 bg-red-700 hover:bg-red-600 rounded-xl font-bold transition duration-150 hidden shadow-lg"></button> 
-                    <!-- Admin action to delete shift entirely -->
-                    <button id="admin-delete-button" class="w-full p-3 bg-slate-600 hover:bg-slate-500 rounded-xl font-bold transition duration-150 hidden shadow-lg">Admin: Delete Shift Completely</button>
-                </div>
-                
-                <div class="mt-6 flex justify-end">
-                    <button id="close-detail-modal" class="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-xl font-medium">Close</button>
-                </div>
+        <div class="grid grid-cols-7 gap-1 sm:gap-2">
+            <!-- Day of the Week Headers -->
+            <div class="text-center font-semibold text-sm sm:text-base text-indigo-400 py-2 border-b-2 border-indigo-600/50">Sun</div>
+            <div class="text-center font-semibold text-sm sm:text-base text-indigo-400 py-2 border-b-2 border-indigo-600/50">Mon</div>
+            <div class="text-center font-semibold text-sm sm:text-base text-indigo-400 py-2 border-b-2 border-indigo-600/50">Tue</div>
+            <div class="text-center font-semibold text-sm sm:text-base text-indigo-400 py-2 border-b-2 border-indigo-600/50">Wed</div>
+            <div class="text-center font-semibold text-sm sm:text-base text-indigo-400 py-2 border-b-2 border-indigo-600/50">Thu</div>
+            <div class="text-center font-semibold text-sm sm:text-base text-indigo-400 py-2 border-b-2 border-indigo-600/50">Fri</div>
+            <div class="text-center font-semibold text-sm sm:text-base text-indigo-400 py-2 border-b-2 border-indigo-600/50">Sat</div>
+            
+            <!-- Calendar Days will be inserted here by JavaScript -->
+            <div id="calendar-grid" class="contents">
+                <!-- Day cells go here -->
             </div>
         </div>
-
-        <!-- Add New Shift Modal (Admin Tool) -->
-        <div id="add-shift-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50">
-            <div class="bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-lg transform transition-all">
-                <h3 class="text-2xl font-bold mb-4 text-indigo-400">Schedule New Shift</h3>
-                <form id="add-shift-form" class="space-y-4">
-                    <!-- Date Input -->
-                    <label for="shift-date" class="block text-sm font-medium text-gray-300">Date</label>
-                    <input type="date" id="shift-date" class="w-full p-3 bg-slate-700 rounded-xl border border-slate-600 text-white" required>
-                    
-                    <!-- NEW: Slots Input -->
-                    <label for="shift-slots" class="block text-sm font-medium text-gray-300">Number of Slots</label>
-                    <input type="number" id="shift-slots" min="1" value="1" class="w-full p-3 bg-slate-700 rounded-xl border border-slate-600 text-white" required>
-                    
-                    <!-- Time Dropdowns -->
-                    <label class="block text-sm font-medium text-gray-300">Shift Time</label>
-                    <div class="flex space-x-4">
-                        <select id="shift-start-time" class="w-1/2 p-3 bg-slate-700 rounded-xl border border-slate-600 text-white" required>
-                            <option value="" disabled selected>Start Time</option>
-                        </select>
-                        <select id="shift-end-time" class="w-1/2 p-3 bg-slate-700 rounded-xl border border-slate-600 text-white" required>
-                            <option value="" disabled selected>End Time</option>
-                        </select>
-                    </div>
-
-                    <!-- Role Input -->
-                    <label for="shift-role" class="block text-sm font-medium text-gray-300">Role / Description</label>
-                    <input type="text" id="shift-role" placeholder="e.g., Weekend Cashier" class="w-full p-3 bg-slate-700 rounded-xl border border-slate-600 text-white" required>
-                    
-                    <div class="flex justify-end space-x-3 mt-6">
-                        <button type="button" id="close-add-modal" class="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-xl font-medium">Cancel</button>
-                        <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-medium shadow-md">Create Shift</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Admin Login Modal -->
-        <div id="admin-login-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50">
-            <div class="bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-sm transform transition-all">
-                <h3 class="text-2xl font-bold mb-4 text-indigo-400">Admin Login</h3>
-                <p id="admin-status-message" class="text-sm text-red-400 mb-4 hidden">Invalid credentials. Please try again.</p>
-                <form id="admin-login-form" class="space-y-4">
-                    <!-- Placeholder text removed here -->
-                    <input type="text" id="admin-username" placeholder="Username" class="w-full p-3 bg-slate-700 rounded-xl border border-slate-600 focus:ring-indigo-500 focus:border-indigo-500 text-white" required>
-                    <!-- Placeholder text removed here -->
-                    <input type="password" id="admin-password" placeholder="Password" class="w-full p-3 bg-slate-700 rounded-xl border border-slate-600 focus:ring-indigo-500 focus:border-indigo-500 text-white" required>
-                    
-                    <div class="flex justify-end space-x-3 pt-4">
-                        <button type="button" id="close-admin-modal" class="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-xl font-medium">Cancel</button>
-                        <button type="submit" id="login-button" class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded-xl font-medium shadow-md">Login</button>
-                        <button type="button" id="logout-button" class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded-xl font-medium shadow-md hidden">Logout</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
     </div>
 
-    <!-- Firebase Imports -->
+    <!-- Modals (Hidden by default) -->
+
+    <!-- 1. Admin Login Modal -->
+    <div id="admin-modal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-90 backdrop-blur-sm z-50 flex justify-center items-center p-4" onclick="if(event.target.id === 'admin-modal') closeModal(adminModal)">
+        <div class="bg-slate-800 p-8 rounded-xl shadow-2xl w-full max-w-sm border border-indigo-600/50">
+            <h3 class="text-2xl font-bold mb-4 text-indigo-300">Admin Access</h3>
+            <p id="admin-modal-message" class="text-slate-400 mb-6">Enter admin credentials to manage shifts.</p>
+            <form id="admin-login-form" class="space-y-4">
+                <div>
+                    <label for="admin-username" class="block text-sm font-medium text-slate-300 mb-1">Username (1234)</label>
+                    <input type="text" id="admin-username" required class="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="admin-password" class="block text-sm font-medium text-slate-300 mb-1">Password (1234)</label>
+                    <input type="password" id="admin-password" required class="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 rounded-lg transition duration-200">Log In</button>
+            </form>
+            <button class="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-gray-300 font-semibold py-2 rounded-lg transition duration-200" id="close-admin-modal-btn">Cancel</button>
+        </div>
+    </div>
+
+    <!-- 2. Shift Details Modal -->
+    <div id="detail-modal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-90 backdrop-blur-sm z-50 flex justify-center items-center p-4" onclick="if(event.target.id === 'detail-modal') closeModal(detailModal)">
+        <div class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-indigo-600/50">
+            <h3 id="shift-detail-role" class="text-3xl font-bold text-indigo-300 mb-2">Shift Role</h3>
+            <p class="text-slate-400 mb-4">
+                <span id="shift-detail-date-time" class="font-medium text-gray-200">Date and Time</span> |
+                Slots: <span id="shift-detail-slots" class="font-medium text-gray-200">0/0</span>
+            </p>
+            
+            <div id="sign-up-section" class="mb-6 p-4 bg-slate-700 rounded-lg">
+                <h4 class="text-lg font-semibold text-gray-100 mb-3 border-b border-slate-600 pb-2">Current Sign-ups:</h4>
+                <ul id="sign-up-list" class="space-y-2 custom-scroll max-h-40 overflow-y-auto text-slate-300">
+                    <!-- Sign-up list items go here -->
+                </ul>
+            </div>
+
+            <div id="user-actions" class="flex space-x-3 mb-6">
+                <button id="sign-up-button" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-semibold py-3 rounded-lg transition duration-200">Sign Up</button>
+                <button id="cancel-button" class="hidden flex-1 bg-amber-600 hover:bg-amber-500 text-white font-semibold py-3 rounded-lg transition duration-200">Cancel My Sign-up</button>
+            </div>
+            
+            <!-- Admin Actions -->
+            <div id="admin-detail-actions" class="hidden border-t border-slate-700 pt-4 space-y-3">
+                <h4 class="text-lg font-semibold text-red-400">Admin Tools</h4>
+                <button id="clear-signups-button" class="w-full bg-red-600 hover:bg-red-500 text-white font-semibold py-2 rounded-lg transition duration-200">Clear All Sign-ups</button>
+                <button id="delete-shift-button" class="w-full bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 rounded-lg transition duration-200">Delete Shift</button>
+            </div>
+
+            <button class="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-gray-300 font-semibold py-2 rounded-lg transition duration-200" id="close-detail-modal-btn">Close</button>
+        </div>
+    </div>
+
+    <!-- 3. Add New Shift Modal -->
+    <div id="add-modal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-90 backdrop-blur-sm z-50 flex justify-center items-center p-4" onclick="if(event.target.id === 'add-modal') closeModal(addModal)">
+        <div class="bg-slate-800 p-8 rounded-xl shadow-2xl w-full max-w-md border border-indigo-600/50">
+            <h3 class="text-2xl font-bold mb-6 text-indigo-300">Schedule New Shift</h3>
+            <form id="add-shift-form" class="space-y-4">
+                <div>
+                    <label for="shift-date" class="block text-sm font-medium text-slate-300 mb-1">Date</label>
+                    <input type="date" id="shift-date" required class="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="shift-start-time" class="block text-sm font-medium text-slate-300 mb-1">Start Time</label>
+                        <select id="shift-start-time" required class="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-indigo-500 focus:border-indigo-500"></select>
+                    </div>
+                    <div>
+                        <label for="shift-end-time" class="block text-sm font-medium text-slate-300 mb-1">End Time</label>
+                        <select id="shift-end-time" required class="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-indigo-500 focus:border-indigo-500"></select>
+                    </div>
+                </div>
+                <div>
+                    <label for="shift-role" class="block text-sm font-medium text-slate-300 mb-1">Role / Description</label>
+                    <input type="text" id="shift-role" required placeholder="E.g., Morning Prep, Closing Duty" class="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="shift-slots" class="block text-sm font-medium text-slate-300 mb-1">Total Slots Required</label>
+                    <input type="number" id="shift-slots" required min="1" value="1" class="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 rounded-lg transition duration-200">Create Shift</button>
+            </form>
+            <button class="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-gray-300 font-semibold py-2 rounded-lg transition duration-200" id="close-add-modal-btn">Cancel</button>
+        </div>
+    </div>
+
+    <!-- JavaScript Section -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // IMPORT UPDATE: Added setLogLevel
-        import { getFirestore, doc, updateDoc, deleteDoc, onSnapshot, collection, addDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // --- CUSTOM FIREBASE CONFIGURATION ---
+        // This configuration is now hardcoded with your project details.
+        const providedFirebaseConfig = {
+            apiKey: "AIzaSyBzGuxM-WXRFzkSLY16sutBF6qn57-tlsM",
+            authDomain: "rcashift-2e40d.firebaseapp.com",
+            projectId: "rcashift-2e40d",
+            storageBucket: "rcashift-2e40d.firebasestorage.app",
+            messagingSenderId: "903668836399",
+            appId: "1:903668836399:web:ed5e464cc9264847763eda"
+        };
+        // --- END CUSTOM CONFIG ---
 
-        // --- GLOBAL SETUP ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        
-        // This is the user-provided Firebase configuration.
-        const providedConfigString = '{"apiKey": "AIzaSyBzGuxM-WXRFzkSLY16sutBF6qn57-tlsM", "authDomain": "rcashift-2e40d.firebaseapp.com", "projectId": "rcashift-2e40d", "storageBucket": "rcashift-2e40d.firebasestorage.app", "messagingSenderId": "903668836399", "appId": "1:903668836399:web:ed5e464cc9264847763eda"}';
 
-        let firebaseConfig;
-        try {
-            // Use the environment variable if available, otherwise use the provided hardcoded configuration.
-            const configString = typeof __firebase_config !== 'undefined' ? __firebase_config : providedConfigString;
-            firebaseConfig = JSON.parse(configString);
-        } catch (e) {
-            console.error("[CONFIG ERROR] Failed to parse Firebase configuration:", e);
-            // Fallback to a blank object or handle the error gracefully
-            firebaseConfig = {}; 
-        }
-        
+        // Global variables provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : providedFirebaseConfig.projectId;
+        const firebaseConfig = providedFirebaseConfig;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // --- ADMIN CONFIGURATION (Hardcoded for local login) ---
-        // Default admin credentials: Username (1234), Password (1234)
-        let isAdmin = localStorage.getItem('isAdmin') === 'true'; // Persist admin status
-        const ADMIN_USERNAME = '1234';
-        const ADMIN_PASSWORD = '1234';
-        
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, query, getDocs, runTransaction, getDoc
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        let db;
-        let auth;
+        // IMPORTANT: Set debug level for firestore to see logs in console
+        setLogLevel('Debug');
+
+        let db = null;
+        let auth = null;
         let currentUserId = null;
-        let shiftsData = {}; 
+        let currentUserName = "Anonymous User";
+        let isAdmin = false;
 
-        // Calendar state
-        let currentMonth = new Date().getMonth();
-        let currentYear = new Date().getFullYear();
+        // Calendar State
+        let currentMonth = new Date();
+        let activeShiftId = null; // ID of the shift currently open in the detail modal
+        let allShifts = {}; // Global store for all shifts fetched from Firestore
+        let unsubscribeShifts = null; // Listener cleanup function
+        let isAuthReady = false; // Flag to ensure subscription happens only once after auth is settled
 
         // Elements
         const calendarGrid = document.getElementById('calendar-grid');
-        const currentMonthYearEl = document.getElementById('current-month-year');
-        const prevMonthBtn = document.getElementById('prev-month');
-        const nextMonthBtn = document.getElementById('next-month');
-        const userIdEl = document.getElementById('user-id');
-        const userRoleLabel = document.getElementById('user-role-label');
+        const monthYearDisplay = document.getElementById('current-month-year');
+        const prevMonthButton = document.getElementById('prev-month');
+        const nextMonthButton = document.getElementById('next-month');
+        const addShiftButton = document.getElementById('add-shift-button');
+        const adminLoginButton = document.getElementById('admin-login-button');
+        const adminActionText = document.getElementById('admin-action-text');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const userRoleDisplay = document.getElementById('current-user-role');
         
-
-        // Modals
-        const detailModal = document.getElementById('shift-detail-modal');
-        const addModal = document.getElementById('add-shift-modal');
-        const openShiftModalBtn = document.getElementById('open-shift-modal');
-        const closeDetailModalBtn = document.getElementById('close-detail-modal');
-        const closeAddModalBtn = document.getElementById('close-add-modal');
-        const adminLoginModal = document.getElementById('admin-login-modal');
-
-        // Modal elements (for shift details)
-        const modalTitle = document.getElementById('modal-title');
-        const modalShiftInfo = document.getElementById('modal-shift-info');
-        const signupFormContainer = document.getElementById('signup-form-container');
-        const filledInfoContainer = document.getElementById('filled-info-container');
-        const signUpNameInput = document.getElementById('signup-name');
-        const signUpButton = document.getElementById('sign-up-button');
-        const cancelSignUpButton = document.getElementById('cancel-sign-up-button');
-        const superCancelButton = document.getElementById('super-cancel-button'); 
-        const adminDeleteButton = document.getElementById('admin-delete-button'); 
-        
-        // NEW: Multi-slot elements
-        const slotsCountEl = document.getElementById('slots-count');
-        const signedUpListEl = document.getElementById('signed-up-list');
-
-
-        // Form elements (for adding shifts)
+        const detailModal = document.getElementById('detail-modal');
+        const addModal = document.getElementById('add-modal');
+        const adminModal = document.getElementById('admin-modal');
         const addShiftForm = document.getElementById('add-shift-form');
-        const shiftDateInput = document.getElementById('shift-date');
-        const shiftSlotsInput = document.getElementById('shift-slots'); // NEW
-        const shiftStartTimeSelect = document.getElementById('shift-start-time');
-        const shiftEndTimeSelect = document.getElementById('shift-end-time');
-
-        // Admin Login elements
-        const openAdminLoginBtn = document.getElementById('open-admin-login');
-        const closeAdminModalBtn = document.getElementById('close-admin-modal');
         const adminLoginForm = document.getElementById('admin-login-form');
-        const adminUsernameInput = document.getElementById('admin-username');
-        const adminPasswordInput = document.getElementById('admin-password');
-        const adminStatusMessage = document.getElementById('admin-status-message');
-        const loginButton = document.getElementById('login-button');
-        const logoutButton = document.getElementById('logout-button');
+        const shiftSlotsInput = document.getElementById('shift-slots');
 
-        // --- FIREBASE INITIALISATION & AUTHENTICATION ---
-        // Only attempt to initialize if a config object was successfully created
-        if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey) {
-             try {
+        // Added references for new close buttons and action buttons
+        const closeAdminModalBtn = document.getElementById('close-admin-modal-btn');
+        const closeAddModalBtn = document.getElementById('close-add-modal-btn');
+        const closeDetailModalBtn = document.getElementById('close-detail-modal-btn');
+        const signUpButton = document.getElementById('sign-up-button');
+        const cancelButton = document.getElementById('cancel-button');
+        const clearSignupsButton = document.getElementById('clear-signups-button');
+        const deleteShiftButton = document.getElementById('delete-shift-button');
+
+
+        // --- Utility Functions ---
+
+        /** Shows a temporary message/alert box */
+        function showMessage(text, isError = false) {
+            const box = document.getElementById('message-box');
+            box.textContent = text;
+            box.className = isError 
+                ? 'fixed top-4 left-1/2 transform -translate-x-1/2 z-50 p-4 rounded-lg shadow-2xl transition-opacity duration-300 bg-red-800 text-white opacity-100'
+                : 'fixed top-4 left-1/2 transform -translate-x-1/2 z-50 p-4 rounded-lg shadow-2xl transition-opacity duration-300 bg-green-600 text-white opacity-100';
+            box.classList.remove('hidden');
+
+            setTimeout(() => {
+                box.classList.add('opacity-0');
+                box.classList.remove('opacity-100');
+                setTimeout(() => box.classList.add('hidden'), 300); // Wait for transition
+            }, 3000);
+        }
+
+        /** Formats a Date object to YYYY-MM-DD string */
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        /** Generates time options (00:00 to 23:30) for a select element */
+        function populateTimeSelect(selectElement) {
+            selectElement.innerHTML = '';
+            for (let h = 0; h < 24; h++) {
+                for (let m = 0; m < 60; m += 30) {
+                    const hour = String(h).padStart(2, '0');
+                    const minute = String(m).padStart(2, '0');
+                    const time = `${hour}:${minute}`;
+                    const option = document.createElement('option');
+                    option.value = time;
+                    option.textContent = time;
+                    selectElement.appendChild(option);
+                }
+            }
+        }
+
+        // --- Firebase Initialisation and Auth ---
+
+        if (firebaseConfig) {
+            try {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                
-                // DEBUG: Set Firestore log level to debug for connectivity tracing
-                setLogLevel('debug'); 
-
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        currentUserId = user.uid;
-                        userIdEl.textContent = currentUserId;
-                        console.log(`[AUTH SUCCESS] User signed in. UID: ${currentUserId}.`); // DEBUG
-                        
-                        // Update UI elements based on local isAdmin state
-                        updateAdminUI();
-
-                        setupFirestoreListener();
-                    } else {
-                        console.log("[AUTH INFO] User not yet signed in. Attempting anonymous/custom token sign in."); // DEBUG
-                        if (initialAuthToken) {
-                            try {
-                                await signInWithCustomToken(auth, initialAuthToken);
-                            } catch (e) {
-                                console.error("[AUTH ERROR] Failed to sign in with custom token, falling back to anonymous:", e);
-                                await signInAnonymously(auth);
-                            }
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    }
-                });
             } catch (error) {
-                console.error("[FIREBASE INIT ERROR] Error during Firebase Initialisation:", error);
-                userIdEl.textContent = "Error";
-                userRoleLabel.textContent = "Role: Unknown";
+                console.error("Firebase Initialization Error:", error);
+                showMessage("Could not connect to the database. Check your config.", true);
             }
         } else {
-            console.error("[FIREBASE INIT ERROR] Firebase config is missing or invalid. Cannot initialize.");
-            userIdEl.textContent = "Config Error";
-            userRoleLabel.textContent = "Role: Unknown";
+            console.error("Firebase config is missing.");
+            showMessage("Database configuration missing.", true);
         }
 
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                // Only show first 8 chars of ID for display, but use full UID for signUps
+                userIdDisplay.textContent = currentUserId.substring(0, 8) + '...'; 
+                currentUserName = user.isAnonymous ? "Anonymous User" : `User (${currentUserId.substring(0, 4)}...)`;
 
-        // --- ADMIN LOGIN LOGIC ---
-        function updateAdminUI() {
-            // Update the global isAdmin state from local storage
-            isAdmin = localStorage.getItem('isAdmin') === 'true';
-
-            userRoleLabel.textContent = isAdmin ? "Role: Admin" : "Role: User";
-            openShiftModalBtn.classList.toggle('hidden', !isAdmin);
-
-            // Update login/logout buttons in the modal
-            loginButton.classList.toggle('hidden', isAdmin);
-            logoutButton.classList.toggle('hidden', !isAdmin);
-
-            // Re-render calendar to update admin controls on existing shifts
-            if (shiftsData) {
-                renderCalendar();
+                // Try to sign in with custom token if available (for authenticated users)
+                if (initialAuthToken) {
+                    try {
+                        // Awaiting this ensures we have the final user/token before proceeding
+                        await signInWithCustomToken(auth, initialAuthToken); 
+                        currentUserName = `Authenticated User`;
+                    } catch (error) {
+                        // This failure is expected if the token is old or invalid. Proceeding with the current user.
+                        console.log("Custom token sign-in failed. Proceeding with anonymous/current user.", error.message);
+                    }
+                }
+            } else {
+                // Sign in anonymously if no user is present. This will trigger onAuthStateChanged again.
+                try {
+                    const result = await signInAnonymously(auth);
+                    currentUserId = result.user.uid;
+                    userIdDisplay.textContent = currentUserId.substring(0, 8) + '...';
+                } catch (error) {
+                    console.error("Anonymous sign-in failed:", error);
+                    showMessage("Failed to sign in anonymously.", true);
+                }
             }
-        }
-
-        function openAdminLoginModal() {
-            // Reset message
-            adminStatusMessage.classList.add('hidden');
             
-            // Set initial state of buttons
-            loginButton.classList.toggle('hidden', isAdmin);
-            logoutButton.classList.toggle('hidden', !isAdmin);
+            // CRITICAL FIX: Only run initial data load AFTER authentication is confirmed and DB is ready.
+            if (currentUserId && db) {
+                updateAdminUI();
+                
+                if (!isAuthReady) {
+                    isAuthReady = true;
+                    renderCalendar(); // Renders the calendar structure
+                    subscribeToShifts(); // Starts the single, persistent data listener
+                } else {
+                    // Update UI if user state (like admin) changes after initial load
+                    filterAndRenderShifts();
+                }
+            } else if (db) {
+                // Should only happen briefly if sign-in failed
+                console.log("User ID still not available after auth attempts.");
+            }
+        });
+        
+        // --- Admin Logic ---
 
-            adminLoginModal.classList.remove('hidden');
-            adminLoginModal.classList.add('flex');
+        const ADMIN_USERNAME = "1234";
+        const ADMIN_PASSWORD = "1234";
+        const ADMIN_FLAG_KEY = 'adminStatus'; // Key for localStorage for admin persistence
+
+        // Check if a user is manually signed in as Admin from a previous session
+        function checkLocalAdmin() {
+            return localStorage.getItem(ADMIN_FLAG_KEY) === 'true';
         }
 
-        function closeAdminLoginModal() {
-            adminLoginModal.classList.add('hidden');
-            adminLoginModal.classList.remove('flex');
-            adminLoginForm.reset();
+        /** Updates UI based on current admin status */
+        function updateAdminUI() {
+            isAdmin = checkLocalAdmin();
+            
+            if (isAdmin) {
+                adminActionText.textContent = "Admin Logout";
+                adminLoginButton.removeEventListener('click', handleOpenAdminModal); 
+                adminLoginButton.addEventListener('click', handleAdminLogout);
+                addShiftButton.classList.remove('hidden');
+                userRoleDisplay.textContent = "ADMIN";
+                userRoleDisplay.classList.remove('text-gray-300');
+                userRoleDisplay.classList.add('text-red-400');
+            } else {
+                adminActionText.textContent = "Admin Login";
+                adminLoginButton.removeEventListener('click', handleAdminLogout); 
+                adminLoginButton.addEventListener('click', handleOpenAdminModal);
+                addShiftButton.classList.add('hidden');
+                userRoleDisplay.textContent = "User";
+                userRoleDisplay.classList.add('text-gray-300');
+                userRoleDisplay.classList.remove('text-red-400');
+            }
         }
 
         function handleAdminLogin(e) {
             e.preventDefault();
-            const username = adminUsernameInput.value.trim();
-            // FIX: Removed the unnecessary `.input` property
-            const password = adminPasswordInput.value.trim(); 
+            const username = document.getElementById('admin-username').value;
+            const password = document.getElementById('admin-password').value;
 
             if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-                localStorage.setItem('isAdmin', 'true');
-                showMessage("Admin login successful!");
-                closeAdminLoginModal();
-                updateAdminUI(); 
+                localStorage.setItem(ADMIN_FLAG_KEY, 'true');
+                showMessage("Admin access granted.", false);
+                closeModal(adminModal); // Use closeModal utility
+                updateAdminUI();
+                filterAndRenderShifts(); // Re-render to update shift colors/admin tools
             } else {
-                adminStatusMessage.textContent = "Invalid credentials. Please try again.";
-                adminStatusMessage.classList.remove('hidden');
+                showMessage("Invalid admin credentials.", true);
             }
         }
 
         function handleAdminLogout() {
-            localStorage.setItem('isAdmin', 'false');
-            showMessage("Logged out as Admin.");
+            localStorage.removeItem(ADMIN_FLAG_KEY);
+            showMessage("Logged out as Admin.", false);
             updateAdminUI();
-            closeAdminLoginModal();
+            filterAndRenderShifts(); // Re-render to update shift colors/admin tools
         }
 
 
-        // --- UTILITY FUNCTIONS ---
-        function formatDate(year, month, day) {
-            const monthStr = String(month + 1).padStart(2, '0');
-            const dayStr = String(day).padStart(2, '0');
-            return `${year}-${monthStr}-${dayStr}`;
-        }
+        // --- Firestore Data Operations ---
 
-        function generateTimeOptions() {
-            let options = '';
-            for (let h = 0; h < 24; h++) {
-                for (let m = 0; m < 60; m += 30) {
-                    const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                    options += `<option value="${time}">${time}</option>`;
-                }
-            }
-            options += `<option value="23:59">23:59</option>`;
-            return options;
-        }
-
-        function setTimeDropdowns() {
-            const timeOptions = generateTimeOptions();
-            shiftStartTimeSelect.innerHTML = `<option value="" disabled selected>Start Time</option>` + timeOptions;
-            shiftEndTimeSelect.innerHTML = `<option value="" disabled selected>End Time</option>` + timeOptions;
-        }
-
-        // Custom alert function to avoid window.alert
-        function showMessage(message, isError = false) {
-            const modalId = isError ? 'error-modal' : 'message-modal';
-            let modal = document.getElementById(modalId);
-
-            if (!modal) {
-                // Create a basic modal if it doesn't exist (simplified for this example)
-                modal = document.createElement('div');
-                modal.id = modalId;
-                modal.className = 'fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-[100]';
-                modal.innerHTML = `
-                    <div class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-sm">
-                        <p id="${modalId}-text" class="text-lg font-medium mb-4 ${isError ? 'text-red-400' : 'text-indigo-400'}"></p>
-                        <div class="flex justify-end">
-                            <button onclick="document.getElementById('${modalId}').classList.add('hidden'); document.getElementById('${modalId}').classList.remove('flex');" class="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-xl font-medium">Close</button>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(modal);
-            }
-
-            document.getElementById(`${modalId}-text`).textContent = message;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-
-        // --- FIRESTORE FUNCTIONS ---
-
-        function getCollectionRef() {
-            // Path: /artifacts/{appId}/public/data/shifts
-            const collectionPath = `artifacts/${appId}/public/data/shifts`;
-            console.log(`[FIRESTORE INFO] Using collection path: ${collectionPath}`); // DEBUG
+        /** Gets the Firestore collection path for shifts */
+        function getShiftsCollectionRef() {
+            // Publicly shared data collection
+            const collectionPath = `/artifacts/${appId}/public/data/shifts`;
             return collection(db, collectionPath);
         }
 
-        function setupFirestoreListener() {
-            if (!db || !currentUserId) return;
-            const shiftsRef = getCollectionRef();
+        /** Fetch shifts for the entire month (real-time listener) - RUNS ONCE ON AUTH SUCCESS */
+        function subscribeToShifts() {
+            if (!db || !currentUserId) { 
+                console.log("Waiting for DB or User ID to subscribe to shifts.");
+                return;
+            }
 
-            onSnapshot(shiftsRef, (snapshot) => {
-                shiftsData = {}; 
+            // Ensure previous listener is cleared (shouldn't be needed, but safe to check)
+            if (unsubscribeShifts) {
+                unsubscribeShifts();
+                unsubscribeShifts = null;
+            }
+
+            const shiftsRef = getShiftsCollectionRef();
+            const q = query(shiftsRef);
+            
+            // onSnapshot provides real-time updates for the WHOLE collection
+            unsubscribeShifts = onSnapshot(q, (snapshot) => {
+                // Clear and repopulate the global shift store
+                allShifts = {};
                 snapshot.forEach((doc) => {
-                    const shift = { ...doc.data(), id: doc.id };
-                    const dateKey = shift.date; 
-                    // Ensure signUps is an array, defaulting to empty array if undefined/null
-                    shift.signUps = Array.isArray(shift.signUps) ? shift.signUps : []; 
+                    const shift = doc.data();
+                    shift.id = doc.id;
+                    const dateKey = shift.date; // Use YYYY-MM-DD as key
                     
-                    if (!shiftsData[dateKey]) {
-                        shiftsData[dateKey] = [];
+                    if (!allShifts[dateKey]) {
+                        allShifts[dateKey] = [];
                     }
-                    shiftsData[dateKey].push(shift);
+                    allShifts[dateKey].push(shift);
                 });
-                renderCalendar();
+                
+                // Now, filter and render only the shifts for the current month view
+                filterAndRenderShifts();
             }, (error) => {
-                console.error("[FIRESTORE LISTENER ERROR] Error listening to shifts:", error);
-                showMessage("Could not load shifts. Check console for details.", true);
+                console.error("Error subscribing to shifts:", error);
+                showMessage("Failed to load shift data. Check your Firestore security rules (should allow anonymous read for /artifacts/{appId}/public/data/shifts).", true);
             });
         }
+        
+        /** Filters the global 'allShifts' data for the current month view and renders them. */
+        function filterAndRenderShifts() {
+            const shiftsToRender = {};
+            // Determine the date range for the current calendar view
+            const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+            const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+            
+            const startKey = formatDate(startOfMonth);
+            const endKey = formatDate(endOfMonth);
 
+            for (const dateKey in allShifts) {
+                // Check if the shift date falls within the current month bounds (client-side filter)
+                if (dateKey >= startKey && dateKey <= endKey) {
+                    shiftsToRender[dateKey] = allShifts[dateKey];
+                }
+            }
+            renderShifts(shiftsToRender);
+        }
+
+        /** Creates a new shift document (Admin action) */
         async function createShift(date, time, role, totalSlots) {
-            if (!db || !currentUserId) { // Check if Firestore and Auth are ready
-                showMessage("Cannot create shift: User not authenticated or database not connected.", true);
-                console.error("[FIRESTORE ERROR] DB or Auth not ready during createShift attempt.");
+            if (!db || !isAdmin) {
+                showMessage("You must be logged in as Admin to create shifts.", true);
                 return false;
             }
-            if (!isAdmin) {
-                showMessage("Permission denied: Only Admin users can create shifts.", true);
-                return false;
-            }
+
             try {
                 const shiftData = {
-                    date: date,
-                    time: time, 
+                    date: date, // YYYY-MM-DD
+                    time: time, // HH:MM - HH:MM
                     role: role,
-                    totalSlots: Number(totalSlots) > 0 ? Number(totalSlots) : 1, // NEW: Ensure at least 1 slot
-                    signUps: [], // NEW: Use array to track multiple users
-                    createdBy: currentUserId, // Track creator
+                    totalSlots: Number(totalSlots),
+                    signUps: [], // Array of { userId: string, userName: string }
                     createdAt: new Date().toISOString()
                 };
-                await addDoc(getCollectionRef(), shiftData);
-                console.log(`[FIRESTORE SUCCESS] Shift created successfully in path: ${getCollectionRef().path}`); // DEBUG
+
+                // Use the ref to add a new document (Firestore auto-generates the ID)
+                await setDoc(doc(getShiftsCollectionRef()), shiftData);
                 showMessage("Shift created successfully!");
                 return true;
             } catch (error) {
-                console.error("[FIRESTORE ERROR] Error creating shift:", error); // Enhanced Log
-                showMessage("Failed to create shift. See console.", true);
+                console.error("Error creating shift:", error);
+                showMessage("Failed to create shift.", true);
                 return false;
             }
         }
 
-        async function deleteShift(shiftId) {
-            if (!isAdmin) {
-                showMessage("Permission denied: Only Admin users can delete shifts.", true);
-                return false;
-            }
-            try {
-                const shiftDocRef = doc(getCollectionRef(), shiftId);
-                await deleteDoc(shiftDocRef);
-                console.log(`[FIRESTORE SUCCESS] Shift ${shiftId} deleted.`); // DEBUG
-                showMessage(`Shift deleted successfully!`);
-                return true;
-            } catch (error) {
-                console.error("[FIRESTORE ERROR] Error deleting shift:", error);
-                showMessage("Failed to delete shift. See console.", true);
-                return false;
-            }
-        }
-
-        async function signUpForShift(shiftId, name) {
+        /** Handles signing up for or canceling a shift using a transaction for safety */
+        async function updateShiftSignUps(shiftId, action) {
             if (!db || !currentUserId) {
-                showMessage("Cannot sign up: User not authenticated or database not connected.", true);
+                showMessage("Authentication error. Please reload.", true);
+                return false;
+            }
+            if (!shiftId) {
+                showMessage("No shift selected.", true);
                 return false;
             }
 
+            const shiftRef = doc(getShiftsCollectionRef(), shiftId);
+            
             try {
-                const shiftDocRef = doc(getCollectionRef(), shiftId);
-                
-                // 1. Get current shift data to check for slots
-                const currentShift = Object.values(shiftsData).flat().find(s => s.id === shiftId);
-                if (!currentShift) {
-                    showMessage("Shift not found or invalid ID.", true);
-                    return false;
-                }
-                
-                const currentSignUps = currentShift.signUps || [];
+                await runTransaction(db, async (transaction) => {
+                    const shiftDoc = await transaction.get(shiftRef);
+                    if (!shiftDoc.exists()) {
+                        throw new Error("Shift does not exist!");
+                    }
 
-                // Check if slots are available
-                if (currentSignUps.length >= currentShift.totalSlots) {
-                     showMessage("Sorry, this shift is already fully booked.", true);
-                     return false;
-                }
+                    const data = shiftDoc.data();
+                    let signUps = data.signUps || [];
+                    const isSignedUp = signUps.some(signup => signup.userId === currentUserId);
 
-                // Check if user is already signed up (prevents multi-sign-up by same user)
-                if (currentSignUps.some(s => s.userId === currentUserId)) {
-                    showMessage("You are already signed up for this shift.", true);
-                    return false;
-                }
-                
-                // Add new signup object
-                const newSignUp = {
-                    name: name,
-                    userId: currentUserId,
-                    signupId: crypto.randomUUID(), // Unique ID for targeting this specific signup
-                    signedUpAt: new Date().toISOString()
-                };
+                    if (action === 'signup') {
+                        if (isSignedUp) {
+                            throw new Error("You are already signed up for this shift.");
+                        }
+                        if (signUps.length >= data.totalSlots) {
+                            throw new Error("This shift is already full!");
+                        }
+                        
+                        // Add sign-up
+                        // Use the full userId for signUps as it is a unique identifier
+                        signUps.push({ userId: currentUserId, userName: currentUserName });
+                        showMessage("You have signed up for the shift!", false);
 
-                await updateDoc(shiftDocRef, {
-                    signUps: [...currentSignUps, newSignUp],
+                    } else if (action === 'cancel') {
+                        if (!isSignedUp) {
+                            throw new Error("You are not signed up for this shift.");
+                        }
+                        
+                        // Remove sign-up
+                        signUps = signUps.filter(signup => signup.userId !== currentUserId);
+                        showMessage("Your sign-up has been cancelled.", false);
+                    }
+
+                    // Update the document in the transaction
+                    transaction.update(shiftRef, { signUps: signUps });
                 });
-                console.log(`[FIRESTORE SUCCESS] User ${currentUserId} signed up for shift ${shiftId}.`); // DEBUG
-                showMessage(`Successfully signed up as ${name}!`);
+
+                // Update detail modal after successful transaction
+                const updatedShiftDoc = await getDoc(shiftRef);
+                if (updatedShiftDoc.exists()) {
+                    handleOpenDetailModal(updatedShiftDoc.data(), updatedShiftDoc.id);
+                } else {
+                     closeModal(detailModal);
+                }
+
                 return true;
+
             } catch (error) {
-                console.error("[FIRESTORE ERROR] Error signing up:", error);
-                showMessage("Failed to sign up for shift. See console.", true);
-                return false;
-            }
-        }
-
-        // New function to clear a specific user's sign-up
-        async function cancelUserSignUp(shiftId, signupId) { 
-            if (!db || !currentUserId) {
-                showMessage("Cannot cancel: User not authenticated or database not connected.", true);
-                return false;
-            }
-            try {
-                const shiftDocRef = doc(getCollectionRef(), shiftId);
-                const currentShift = Object.values(shiftsData).flat().find(s => s.id === shiftId);
-
-                if (!currentShift) return false;
-                
-                // Filter out the specific signup using its unique ID
-                const updatedSignUps = (currentShift.signUps || []).filter(signup => signup.signupId !== signupId);
-
-                await updateDoc(shiftDocRef, {
-                    signUps: updatedSignUps,
-                });
-                console.log(`[FIRESTORE SUCCESS] User ${currentUserId} cancelled signup on shift ${shiftId}.`); // DEBUG
-                showMessage(`Sign-up successfully cancelled.`);
-                return true;
-            } catch (error) {
-                console.error("[FIRESTORE ERROR] Error cancelling sign up:", error);
-                showMessage("Failed to cancel sign-up. See console.", true);
+                console.error(`Error with shift ${action}:`, error.message);
+                showMessage(error.message, true);
                 return false;
             }
         }
         
-        // New Admin function to clear all sign-ups
-        async function adminClearAllSignUps(shiftId) {
-            if (!isAdmin) {
-                showMessage("Permission denied.", true);
-                return false;
+        /** Deletes a shift document (Admin action) */
+        async function handleDeleteShift() { // Function name changed for consistency
+            const shiftId = activeShiftId;
+            if (!db || !isAdmin) {
+                showMessage("You must be logged in as Admin to delete shifts.", true);
+                return;
             }
+            if (!shiftId) {
+                showMessage("No shift selected.", true);
+                return;
+            }
+
+            // Using prompt as a replacement for confirm()
+            const isConfirmed = prompt("Type 'DELETE' to confirm deleting this shift:");
+            if (isConfirmed !== 'DELETE') {
+                showMessage("Deletion cancelled.", true);
+                return;
+            }
+
             try {
-                const shiftDocRef = doc(getCollectionRef(), shiftId);
-                await updateDoc(shiftDocRef, {
-                    signUps: [],
-                });
-                console.log(`[FIRESTORE SUCCESS] Admin cleared all signups on shift ${shiftId}.`); // DEBUG
-                showMessage(`Admin: All sign-ups cleared for this shift.`);
-                return true;
+                await deleteDoc(doc(getShiftsCollectionRef(), shiftId));
+                showMessage("Shift deleted successfully.");
+                closeModal(detailModal);
             } catch (error) {
-                console.error("[FIRESTORE ERROR] Error clearing all sign ups:", error);
-                showMessage("Failed to clear all sign-ups. See console.", true);
-                return false;
+                console.error("Error deleting shift:", error);
+                showMessage("Failed to delete shift.", true);
             }
         }
-
-
-        // --- CALENDAR LOGIC & RENDERING ---
-
-        function getFirstDayOfMonth(year, month) {
-            const date = new Date(year, month, 1);
-            let day = date.getDay();
-            return day === 0 ? 6 : day - 1; // Convert to Mon=0, Sun=6
-        }
-
-        function getDaysInMonth(year, month) {
-            return new Date(year, month + 1, 0).getDate();
-        }
-
-        function renderCalendar() {
-            const monthNames = ["January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"
-            ];
-
-            currentMonthYearEl.textContent = `${monthNames[currentMonth]} ${currentYear}`;
-            calendarGrid.innerHTML = ''; 
-
-            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
-            const firstDayIndex = getFirstDayOfMonth(currentYear, currentMonth);
-
-            for (let i = 0; i < firstDayIndex; i++) {
-                const emptyCell = document.createElement('div');
-                calendarGrid.appendChild(emptyCell);
+        
+        /** Clears all sign-ups from a shift (Admin action) */
+        async function handleClearSignUps() { // Function name changed for consistency
+            const shiftId = activeShiftId;
+            if (!db || !isAdmin) {
+                showMessage("You must be logged in as Admin to clear sign-ups.", true);
+                return;
             }
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dateKey = formatDate(currentYear, currentMonth, day);
-                const dayDate = new Date(currentYear, currentMonth, day);
-                dayDate.setHours(0, 0, 0, 0); 
-                
-                const isToday = dayDate.getTime() === today.getTime();
-                const isPast = dayDate < today; 
-                
-                const shiftsOnDay = shiftsData[dateKey] || [];
-
-                const cell = document.createElement('div');
-                cell.className = `p-2 sm:p-3 rounded-xl border border-gray-700 h-28 relative transition duration-150 overflow-y-auto custom-scroll`;
-                
-                if (isPast) {
-                    cell.classList.add('bg-slate-900', 'text-gray-600', 'cursor-not-allowed', 'opacity-60');
-                    cell.classList.remove('bg-slate-700', 'hover:bg-slate-600', 'cursor-pointer');
-                } else {
-                    // Applied richer colours for active cells
-                    cell.classList.add('bg-slate-700', 'hover:bg-slate-600', 'cursor-pointer', 'text-gray-100');
-                }
-                
-                if (isToday) {
-                    cell.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-2', 'ring-offset-slate-900');
-                }
-
-                cell.innerHTML = `
-                    <div class="text-xl font-extrabold mb-1">${day}</div>
-                    <div class="text-xs space-y-1">
-                        ${shiftsOnDay.map(shift => {
-                            const currentSignUps = (shift.signUps || []).length;
-                            const totalSlots = shift.totalSlots || 1;
-                            const isFull = currentSignUps >= totalSlots;
-                            const userIsSignedUp = (shift.signUps || []).some(s => s.userId === currentUserId);
-
-                            let statusColor = 'bg-green-600'; // Available
-                            if (isFull) {
-                                statusColor = 'bg-red-600'; // Full
-                            } else if (currentSignUps > 0) {
-                                statusColor = 'bg-indigo-600'; // Partially filled
-                            }
-                            
-                            const statusText = `${currentSignUps}/${totalSlots} Slots`;
-
-                            const interactionClass = isPast ? '' : 'cursor-pointer'; 
-                            const hoverClass = isPast ? '' : 'hover:shadow-xl transition duration-100';
-
-                            return `
-                                <div data-shift-id="${shift.id}" 
-                                     class="shift-entry p-1 rounded text-white text-xs font-medium shadow-md ${statusColor} ${hoverClass} ${interactionClass}"
-                                     data-is-past="${isPast}">
-                                    <span class="font-bold">${shift.time}</span> (${statusText})
-                                    ${userIsSignedUp ? '<span class="ml-1 text-yellow-200">★</span>' : ''}
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
-
-                calendarGrid.appendChild(cell);
-            }
-
-            document.querySelectorAll('.shift-entry').forEach(entry => {
-                if (entry.getAttribute('data-is-past') !== 'true') {
-                    entry.addEventListener('click', (event) => {
-                        event.stopPropagation();
-                        const shiftId = entry.getAttribute('data-shift-id');
-                        openShiftDetailModal(shiftId);
-                    });
-                }
-            });
-        }
-
-        // --- MODAL HANDLING ---
-
-        function openShiftDetailModal(shiftId) {
-            const flatShifts = Object.values(shiftsData).flat();
-            const shift = flatShifts.find(s => s.id === shiftId);
-
-            if (!shift) {
-                showMessage("Shift details not found.", true);
+            if (!shiftId) {
+                showMessage("No shift selected.", true);
                 return;
             }
             
-            const shiftDate = new Date(shift.date);
-            shiftDate.setHours(0, 0, 0, 0);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const isShiftPast = shiftDate < today;
-            
-            // NEW: Multi-slot logic
-            const currentSignUps = shift.signUps || [];
-            const totalSlots = shift.totalSlots || 1;
-            const isFull = currentSignUps.length >= totalSlots;
-            
-            const currentUserSignup = currentSignUps.find(s => s.userId === currentUserId);
-            const userIsSignedUp = !!currentUserSignup;
-            const userSignupId = currentUserSignup ? currentUserSignup.signupId : null;
+            // Using prompt as a replacement for confirm()
+            const isConfirmed = prompt("Type 'CLEAR' to confirm clearing all sign-ups for this shift:");
+            if (isConfirmed !== 'CLEAR') {
+                showMessage("Action cancelled.", true);
+                return;
+            }
 
-
-            modalTitle.textContent = `Shift on ${shift.date}`;
-            modalShiftInfo.innerHTML = `
-                <p class="text-xl font-bold text-white">${shift.time}</p>
-                <p class="text-lg text-indigo-300">${shift.role}</p>
-            `;
-            
-            // Update Sign-Up List Area
-            slotsCountEl.textContent = `${currentSignUps.length}/${totalSlots} slots`;
-            signedUpListEl.innerHTML = currentSignUps.length > 0
-                ? currentSignUps.map(s => `
-                    <li class="p-2 bg-slate-700 rounded-lg flex justify-between items-center">
-                        ${s.name} 
-                        ${s.userId === currentUserId ? '<span class="text-yellow-400 font-bold text-sm">(You)</span>' : ''}
-                    </li>
-                `).join('')
-                : '<li class="text-gray-400 italic">No one signed up yet.</li>';
-
-            // Reset button actions and hide everything
-            cancelSignUpButton.onclick = null;
-            signUpButton.onclick = null;
-            superCancelButton.onclick = null;
-            adminDeleteButton.onclick = null; 
-            
-            filledInfoContainer.classList.remove('hidden'); 
-            cancelSignUpButton.classList.add('hidden');
-            superCancelButton.classList.add('hidden');
-            adminDeleteButton.classList.add('hidden'); 
-            document.getElementById('can-cancel-message').classList.add('hidden');
-            signupFormContainer.classList.add('hidden');
-
-            // --- Logic based on shift status ---
-
-            if (isShiftPast) {
-                // PAST SHIFT
-                document.getElementById('can-cancel-message').textContent = 'This shift is in the past.';
-                document.getElementById('can-cancel-message').classList.remove('hidden');
-                
-            } else if (userIsSignedUp) {
-                // CURRENT USER IS SIGNED UP (Future Shift)
-                cancelSignUpButton.classList.remove('hidden');
-                document.getElementById('can-cancel-message').textContent = 'You are signed up for this shift. Cancel below if needed.';
-                document.getElementById('can-cancel-message').classList.remove('hidden');
-
-                cancelSignUpButton.onclick = async () => {
-                    const success = await cancelUserSignUp(shiftId, userSignupId); 
-                    if (success) closeDetailModal();
-                };
-
-            } else if (isFull) {
-                 // SHIFT IS FULL BUT USER ISN'T SIGNED UP (Future Shift)
-                document.getElementById('can-cancel-message').textContent = 'This shift is fully booked.';
-                document.getElementById('can-cancel-message').classList.remove('hidden');
-
-            } else {
-                // SHIFT AVAILABLE (Future Shift)
-                signupFormContainer.classList.remove('hidden');
-
-                signUpButton.onclick = async () => {
-                    const name = signUpNameInput.value.trim();
-                    if (name) {
-                        const success = await signUpForShift(shiftId, name);
-                        if (success) closeDetailModal();
-                    } else {
-                        showMessage("Please enter your name to sign up.", true);
+            try {
+                const shiftRef = doc(getShiftsCollectionRef(), shiftId);
+                await runTransaction(db, async (transaction) => {
+                    const shiftDoc = await transaction.get(shiftRef);
+                    if (!shiftDoc.exists()) {
+                        throw new Error("Shift does not exist!");
                     }
-                };
+                    transaction.update(shiftRef, { signUps: [] });
+                });
+                showMessage("All sign-ups cleared successfully.");
+
+                // Update detail modal
+                const updatedShiftDoc = await getDoc(shiftRef);
+                if (updatedShiftDoc.exists()) {
+                    handleOpenDetailModal(updatedShiftDoc.data(), updatedShiftDoc.id);
+                } else {
+                     closeModal(detailModal);
+                }
+
+            } catch (error) {
+                console.error("Error clearing sign-ups:", error);
+                showMessage("Failed to clear sign-ups.", true);
+            }
+        }
+
+
+        // --- Calendar Rendering ---
+
+        /** Main function to render the calendar structure */
+        function renderCalendar() {
+            monthYearDisplay.textContent = currentMonth.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+            calendarGrid.innerHTML = '';
+            
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            
+            const firstDayOfMonth = new Date(year, month, 1);
+            const lastDayOfMonth = new Date(year, month + 1, 0);
+            const startingDayOfWeek = firstDayOfMonth.getDay(); // 0 for Sunday
+            
+            // Calculate days from previous month to display
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
+            for (let i = startingDayOfWeek; i > 0; i--) {
+                const day = daysInPrevMonth - i + 1;
+                calendarGrid.appendChild(createDayCell(day, 'prev', year, month));
+            }
+
+            // Days of the current month
+            for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
+                calendarGrid.appendChild(createDayCell(day, 'current', year, month));
+            }
+
+            // Calculate days from next month to display
+            const totalCells = startingDayOfWeek + lastDayOfMonth.getDate();
+            const cellsRemaining = 42 - totalCells; // 6 rows * 7 days
+            for (let day = 1; day <= cellsRemaining; day++) {
+                calendarGrid.appendChild(createDayCell(day, 'next', year, month));
             }
             
-            // --- ADMIN OVERRIDES ---
-            if (isAdmin) {
-                // Admin can always delete the shift entirely
-                adminDeleteButton.classList.remove('hidden');
-                adminDeleteButton.onclick = async () => {
-                    const success = await deleteShift(shiftId);
-                    if (success) closeDetailModal();
-                };
+            // DONT call subscribeToShifts here. It is called once when auth is ready.
+        }
 
-                // Admin button to clear ALL sign-ups
-                if (currentSignUps.length > 0) {
-                    superCancelButton.classList.remove('hidden');
-                    superCancelButton.textContent = 'Admin: Clear ALL Sign-Ups (Make Available)';
-                    superCancelButton.onclick = async () => {
-                        const success = await adminClearAllSignUps(shiftId);
-                        if (success) closeDetailModal();
-                    };
+        /** Creates a single day cell element */
+        function createDayCell(day, type, year, month) {
+            const cell = document.createElement('div');
+            
+            // Determine the full date for current month days
+            let dateString = null;
+            if (type === 'current') {
+                const currentDate = new Date(year, month, day);
+                dateString = formatDate(currentDate);
+            } else if (type === 'prev') {
+                const prevMonthDate = new Date(year, month - 1, day);
+                dateString = formatDate(prevMonthDate);
+            } else { // 'next'
+                const nextMonthDate = new Date(year, month + 1, day);
+                dateString = formatDate(nextMonthDate);
+            }
+
+            const isToday = type === 'current' && formatDate(new Date()) === dateString;
+
+            cell.className = `h-28 p-1 sm:p-2 rounded-lg border border-slate-700 shadow-lg transition-all duration-150 relative overflow-hidden custom-scroll`;
+            
+            if (type === 'current') {
+                cell.classList.add('bg-slate-800', 'hover:bg-slate-700/70');
+            } else {
+                cell.classList.add('bg-slate-800/50', 'text-slate-500'); // Faded for prev/next month
+            }
+
+            if (isToday) {
+                cell.classList.add('border-2', 'border-indigo-500', 'bg-slate-700', 'shadow-indigo-500/30');
+            }
+
+            // Day number display
+            const dayNumber = document.createElement('div');
+            dayNumber.className = `text-sm sm:text-base font-bold ${isToday ? 'text-indigo-400' : 'text-gray-200'} mb-1`;
+            dayNumber.textContent = day;
+            cell.appendChild(dayNumber);
+
+            // Container for shifts in this day
+            const shiftsContainer = document.createElement('div');
+            shiftsContainer.id = `shifts-for-${dateString}`;
+            shiftsContainer.className = 'space-y-1';
+            cell.appendChild(shiftsContainer);
+
+            return cell;
+        }
+
+        /** Renders shift entries into the calendar cells */
+        function renderShifts(shifts) {
+            // First, clear all existing shift entries from the DOM
+            document.querySelectorAll('[id^="shifts-for-"]').forEach(container => {
+                container.innerHTML = '';
+            });
+
+            // Iterate over all shifts and add them to the correct day cell
+            for (const date in shifts) {
+                const shiftsForDay = shifts[date];
+                const container = document.getElementById(`shifts-for-${date}`);
+                
+                if (container) {
+                    // Sort shifts by time before rendering
+                    shiftsForDay.sort((a, b) => {
+                        const timeA = a.time.split(' - ')[0];
+                        const timeB = b.time.split(' - ')[0];
+                        return timeA.localeCompare(timeB);
+                    });
+                    
+                    shiftsForDay.forEach(shift => {
+                        const entry = createShiftEntry(shift);
+                        container.appendChild(entry);
+                    });
                 }
             }
-
-            detailModal.classList.remove('hidden');
-            detailModal.classList.add('flex');
         }
 
-        function closeDetailModal() {
-            detailModal.classList.add('hidden');
-            detailModal.classList.remove('flex');
-        }
+        /** Creates a clickable shift entry box */
+        function createShiftEntry(shift) {
+            const entry = document.createElement('div');
+            entry.className = `shift-entry p-1 rounded-md text-white cursor-pointer shadow-md transition-all duration-100 font-medium truncate text-xs sm:text-sm`;
+            entry.setAttribute('data-shift-id', shift.id);
+            // Attach listener to open detail modal
+            entry.addEventListener('click', () => handleOpenDetailModal(shift, shift.id));
 
-        function openAddShiftModal() {
-            if (!isAdmin) return;
-
-            const today = new Date();
-            const minDate = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
-            shiftDateInput.setAttribute('min', minDate);
-            shiftDateInput.value = minDate.substring(0, 10);
+            const filledSlots = shift.signUps ? shift.signUps.length : 0;
+            const totalSlots = shift.totalSlots;
+            const percentage = (filledSlots / totalSlots) * 100;
+            const isSignedUpByMe = shift.signUps.some(s => s.userId === currentUserId);
             
-            setTimeDropdowns(); 
-            addModal.classList.remove('hidden');
-            addModal.classList.add('flex');
+            // Colour coding based on fill status
+            let bgColor = 'bg-blue-600'; // Available
+            if (percentage >= 100) {
+                bgColor = 'bg-red-600'; // Full
+            } else if (percentage >= 50) {
+                bgColor = 'bg-amber-600'; // Partially Filled
+            }
+            
+            // Prioritize personal sign-up color
+            if (isSignedUpByMe && percentage < 100) {
+                 bgColor = 'bg-green-600'; // Highlight if I'm on it and it's not full
+            } else if (isSignedUpByMe && percentage >= 100) {
+                bgColor = 'bg-indigo-600'; // Highlight if I'm on it and it's full (locked in)
+            }
+
+
+            entry.classList.add(bgColor, 'hover:scale-[1.02]');
+            
+            entry.innerHTML = `<span class="font-bold">${shift.time}</span><br>${shift.role} (${filledSlots}/${totalSlots})`;
+            
+            return entry;
         }
 
-        function closeAddModal() {
-            addModal.classList.add('hidden');
-            addModal.classList.remove('flex');
-            addShiftForm.reset();
+        // --- Modal Control ---
+
+        function openModal(modal) {
+            modal.classList.remove('hidden');
         }
 
-
-        // --- EVENT LISTENERS ---
-
-        prevMonthBtn.addEventListener('click', () => {
-            currentMonth--;
-            if (currentMonth < 0) {
-                currentMonth = 11;
-                currentYear--;
-            }
-            renderCalendar();
-        });
-
-        nextMonthBtn.addEventListener('click', () => {
-            currentMonth++;
-            if (currentMonth > 11) {
-                currentMonth = 0;
-                currentYear++;
-            }
-            renderCalendar();
-        });
-
-        // Modal Controls
-        openShiftModalBtn.addEventListener('click', openAddShiftModal);
-        closeDetailModalBtn.addEventListener('click', closeDetailModal);
-        closeAddModalBtn.addEventListener('click', closeAddModal);
+        function closeModal(modal) {
+            modal.classList.add('hidden');
+        }
         
-        // Admin Login Controls
-        openAdminLoginBtn.addEventListener('click', openAdminLoginModal);
-        closeAdminModalBtn.addEventListener('click', closeAdminLoginModal);
+        // Function to open Admin Modal (renamed from openAdminModal)
+        function handleOpenAdminModal() {
+            document.getElementById('admin-modal-message').textContent = 'Enter admin credentials to manage shifts. (Default: 1234/1234)';
+            adminLoginForm.reset();
+            openModal(adminModal);
+        }
+        
+        // Function to open Add Shift Modal (renamed from openAddModal)
+        function handleOpenAddModal() {
+            // Populate time selects
+            const shiftStartTimeSelect = document.getElementById('shift-start-time');
+            const shiftEndTimeSelect = document.getElementById('shift-end-time');
+            populateTimeSelect(shiftStartTimeSelect);
+            populateTimeSelect(shiftEndTimeSelect);
+
+            // Set default date to today's date in local time
+            document.getElementById('shift-date').value = formatDate(new Date());
+
+            addShiftForm.reset();
+            openModal(addModal);
+        }
+
+        // Function to open Shift Detail Modal (renamed from openDetailModal)
+        function handleOpenDetailModal(shift, id) {
+            activeShiftId = id;
+            
+            // Elements in detail modal
+            const shiftDetailRole = document.getElementById('shift-detail-role');
+            const shiftDetailDateTime = document.getElementById('shift-detail-date-time');
+            const shiftDetailSlots = document.getElementById('shift-detail-slots');
+            const signUpList = document.getElementById('sign-up-list');
+            const adminDetailActions = document.getElementById('admin-detail-actions'); // Ensure this element is referenced
+            
+            shiftDetailRole.textContent = shift.role;
+            shiftDetailDateTime.textContent = `${shift.date} | ${shift.time}`;
+            
+            const filledSlots = shift.signUps ? shift.signUps.length : 0;
+            const totalSlots = shift.totalSlots;
+            shiftDetailSlots.textContent = `${filledSlots}/${totalSlots}`;
+
+            // Handle Sign-up list
+            signUpList.innerHTML = '';
+            if (filledSlots === 0) {
+                signUpList.innerHTML = '<li class="text-slate-500 italic">No one is signed up yet.</li>';
+            } else {
+                shift.signUps.forEach(signup => {
+                    const li = document.createElement('li');
+                    const isMe = signup.userId === currentUserId;
+                    li.className = isMe ? 'text-indigo-300 font-semibold' : 'text-slate-300';
+                    li.innerHTML = `${signup.userName} ${isMe ? '(You)' : ''} <span class="text-slate-500 text-xs select-all">| ID: ${signup.userId.substring(0, 8)}...</span>`;
+                    signUpList.appendChild(li);
+                });
+            }
+
+            // Handle User Action Buttons
+            const isSignedUp = shift.signUps.some(s => s.userId === currentUserId);
+            const isFull = filledSlots >= totalSlots;
+            
+            if (isSignedUp) {
+                signUpButton.classList.add('hidden');
+                cancelButton.classList.remove('hidden');
+            } else if (isFull) {
+                signUpButton.classList.remove('hidden');
+                signUpButton.textContent = "Full";
+                signUpButton.disabled = true;
+                signUpButton.classList.replace('bg-green-600', 'bg-slate-600');
+                cancelButton.classList.add('hidden');
+            } else {
+                signUpButton.classList.remove('hidden');
+                signUpButton.textContent = "Sign Up";
+                signUpButton.disabled = false;
+                signUpButton.classList.replace('bg-slate-600', 'bg-green-600');
+                cancelButton.classList.add('hidden');
+            }
+            
+            // Handle Admin Actions visibility
+            if (isAdmin) {
+                adminDetailActions.classList.remove('hidden');
+            } else {
+                adminDetailActions.classList.add('hidden');
+            }
+
+            openModal(detailModal);
+        }
+
+
+        // --- Action Handlers for Modals (No change to function names here) ---
+
+        function handleSignUp() {
+            updateShiftSignUps(activeShiftId, 'signup');
+        }
+        
+        function handleCancelSignUp() {
+            updateShiftSignUps(activeShiftId, 'cancel');
+        }
+        
+        // Note: handleDeleteShift and handleClearSignUps now use activeShiftId internally and are defined above.
+
+
+        // --- Event Listeners and Init ---
+
+        prevMonthButton.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() - 1);
+            renderCalendar();
+            filterAndRenderShifts(); // New: Filter and render based on new month
+        });
+
+        nextMonthButton.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+            renderCalendar();
+            filterAndRenderShifts(); // New: Filter and render based on new month
+        });
+        
+        // Modal Button Listeners (New assignments to fix ReferenceErrors)
+        
+        // Main Action Buttons
+        // adminLoginButton listener is set and updated in updateAdminUI
+        addShiftButton.addEventListener('click', handleOpenAddModal); 
+        
+        // Close Buttons inside modals
+        closeAdminModalBtn.addEventListener('click', () => closeModal(adminModal));
+        closeAddModalBtn.addEventListener('click', () => closeModal(addModal));
+        closeDetailModalBtn.addEventListener('click', () => closeModal(detailModal));
+
+        // User Action Buttons (Detail Modal)
+        signUpButton.addEventListener('click', handleSignUp);
+        cancelButton.addEventListener('click', handleCancelSignUp);
+        
+        // Admin Action Buttons (Detail Modal)
+        deleteShiftButton.addEventListener('click', handleDeleteShift);
+        clearSignupsButton.addEventListener('click', handleClearSignUps);
+        
+        // Form Submission Handlers
         adminLoginForm.addEventListener('submit', handleAdminLogin);
-        logoutButton.addEventListener('click', handleAdminLogout);
         
         // Form Submission for creating a new shift
         addShiftForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const date = document.getElementById('shift-date').value;
+            const shiftStartTimeSelect = document.getElementById('shift-start-time');
+            const shiftEndTimeSelect = document.getElementById('shift-end-time');
             const startTime = shiftStartTimeSelect.value;
             const endTime = shiftEndTimeSelect.value;
             const time = `${startTime} - ${endTime}`; 
             const role = document.getElementById('shift-role').value.trim();
-            const totalSlots = shiftSlotsInput.value; // NEW
+            const totalSlots = shiftSlotsInput.value; 
 
             if (date && startTime && endTime && role && totalSlots) {
                 if (startTime >= endTime) {
@@ -903,18 +959,19 @@
                     return;
                 }
                 const success = await createShift(date, time, role, totalSlots);
-                if (success) closeAddModal();
+                if (success) closeModal(addModal);
             }
         });
 
-        // Initial render on load
+        // Initial setup and render on load
         window.onload = () => {
-            updateAdminUI(); 
-            if (db) {
-                renderCalendar();
-            } else {
-                console.log("Waiting for Firebase to initialise...");
-            }
+            // Populate time selects on load (before modal opens, for quick access)
+            const shiftStartTimeSelect = document.getElementById('shift-start-time');
+            const shiftEndTimeSelect = document.getElementById('shift-end-time');
+            populateTimeSelect(shiftStartTimeSelect);
+            populateTimeSelect(shiftEndTimeSelect);
+            
+            // Data loading is now handled exclusively by onAuthStateChanged
         };
 
     </script>
