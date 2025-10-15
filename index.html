@@ -190,11 +190,18 @@
         function closeAddModal() { addShiftModal.classList.add('hidden'); }
         function closeSignUpModal() { signUpModal.classList.add('hidden'); }
 
-        function openAddModal() { 
+        /**
+         * Opens the Add Shift modal and sets the initial date value.
+         * @param {string | null} initialDate YYYY-MM-DD date string, or null to default to today.
+         */
+        function openAddModal(initialDate = null) { 
             // Set min date to today to prevent past shift creation in UI
             const today = new Date().toISOString().split('T')[0];
             shiftDateInput.min = today;
-            shiftDateInput.value = today; // Set default value to today
+            
+            // Use the provided initialDate, otherwise default to today
+            shiftDateInput.value = initialDate || today; 
+            
             addShiftModal.classList.remove('hidden'); 
         }
 
@@ -362,7 +369,7 @@
                 const dateString = formatDate(date);
                 const dayShifts = allShifts[dateString] || [];
                 
-                const isPast = isPastDate(dateString); // 2. Check for past date
+                const isPast = isPastDate(dateString); // Check for past date
                 const dayClass = isPast ? 'past-day' : 'bg-slate-700 hover:bg-slate-600 cursor-pointer';
 
                 const dayDiv = document.createElement('div');
@@ -375,7 +382,7 @@
                             <div id="shift-${shift.id}" 
                                 class="shift-entry p-1 bg-indigo-600 hover:bg-indigo-500 text-xs font-medium rounded-md shadow transition duration-100" 
                                 data-doc-id="${shift.id}" data-date="${dateString}">
-                                ${shift.role} (${(shift.signedUpUsers || []).length}/${shift.totalSlots})
+                                <span class="font-bold">${shift.time}</span> - ${shift.role} (${(shift.signedUpUsers || []).length}/${shift.totalSlots})
                             </div>
                         `).join('')}
                     </div>
@@ -392,15 +399,14 @@
                 });
 
                 // Add "Add Shift" button for admins on current or future dates
-                if (isAdmin && !isPast) { // 2. & 3. Only allow admin interaction on current/future dates
+                if (isAdmin && !isPast) {
                     const addButton = document.createElement('button');
                     addButton.className = 'absolute bottom-2 right-2 bg-indigo-500 hover:bg-indigo-400 text-white p-1 rounded-full shadow-lg';
                     addButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>`;
                     addButton.onclick = (e) => {
                         e.stopPropagation();
-                        // Set the date input in the modal to the selected day
-                        document.getElementById('shift-date').value = dateString;
-                        openAddModal();
+                        // FIX: Pass the specific date string to openAddModal
+                        openAddModal(dateString); 
                     };
                     dayDiv.appendChild(addButton);
                 }
@@ -458,7 +464,7 @@
             const cancelButton = document.getElementById('cancel-sign-up-button');
             const displayNameInput = document.getElementById('display-name-input');
             
-            // 4. Pre-fill display name from localStorage if available
+            // Pre-fill display name from localStorage if available
             const storedDisplayName = localStorage.getItem('shiftSchedulerDisplayName');
             if (storedDisplayName) {
                 displayNameInput.value = storedDisplayName;
@@ -576,7 +582,7 @@
             const path = getShiftsCollectionPath();
             const shiftRef = doc(db, path, docId);
             
-            // 4. Save display name to localStorage for future use
+            // Save display name to localStorage for future use
             localStorage.setItem('shiftSchedulerDisplayName', displayName);
 
             const userEntry = { 
@@ -739,7 +745,7 @@
             const totalSlots = shiftSlotsInput.value;
 
             if (date && startTime && endTime && role && totalSlots) {
-                // 3. Admin cannot create shift in the past date check
+                // Admin cannot create shift in the past date check
                 if (isPastDate(date)) {
                     showMessage('Cannot create shifts in the past.', true);
                     return;
