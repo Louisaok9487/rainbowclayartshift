@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Shift Scheduler</title>
+    <title>Rainbow Clay Art Shift Scheduler</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -38,7 +38,7 @@
         
         <!-- Header & Admin Controls -->
         <header class="flex justify-between items-center mb-8 pb-4 border-b border-indigo-500">
-            <h1 class="text-3xl font-extrabold text-indigo-400">Team Shift Scheduler</h1>
+            <h1 class="text-3xl font-extrabold text-indigo-400">Rainbow Clay Art Shift Scheduler</h1>
             <div id="admin-controls" class="space-x-4">
                 <button id="admin-login-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition duration-200">
                     Admin Login
@@ -799,10 +799,10 @@
 
         // --- Admin Authentication Logic ---
 
-        const ADMIN_PASSWORD = "1234"; // IMPORTANT: Change this in a real application
+        const ADMIN_PA = "1234"; // IMPORTANT: Change this in a real application
 
         async function handleAdminLogin(password) {
-            if (password === ADMIN_PASSWORD) {
+            if (password === ADMIN_PA) {
                 // For demonstration, we simply set the isAdmin flag and re-authenticate as admin.
                 // In a real scenario, you'd use Firebase Custom Claims or a dedicated admin service.
                 isAdmin = true;
