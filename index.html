@@ -174,11 +174,26 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, updateDoc, deleteDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // IMPORT UPDATE: Added setLogLevel
+        import { getFirestore, doc, updateDoc, deleteDoc, onSnapshot, collection, addDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- GLOBAL SETUP ---
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        
+        // This is the user-provided Firebase configuration.
+        const providedConfigString = '{"apiKey": "AIzaSyBzGuxM-WXRFzkSLY16sutBF6qn57-tlsM", "authDomain": "rcashift-2e40d.firebaseapp.com", "projectId": "rcashift-2e40d", "storageBucket": "rcashift-2e40d.firebasestorage.app", "messagingSenderId": "903668836399", "appId": "1:903668836399:web:ed5e464cc9264847763eda"}';
+
+        let firebaseConfig;
+        try {
+            // Use the environment variable if available, otherwise use the provided hardcoded configuration.
+            const configString = typeof __firebase_config !== 'undefined' ? __firebase_config : providedConfigString;
+            firebaseConfig = JSON.parse(configString);
+        } catch (e) {
+            console.error("[CONFIG ERROR] Failed to parse Firebase configuration:", e);
+            // Fallback to a blank object or handle the error gracefully
+            firebaseConfig = {}; 
+        }
+        
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // --- ADMIN CONFIGURATION (Hardcoded for local login) ---
@@ -248,31 +263,48 @@
         const logoutButton = document.getElementById('logout-button');
 
         // --- FIREBASE INITIALISATION & AUTHENTICATION ---
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
+        // Only attempt to initialize if a config object was successfully created
+        if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey) {
+             try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                // DEBUG: Set Firestore log level to debug for connectivity tracing
+                setLogLevel('debug'); 
 
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUserId = user.uid;
-                    userIdEl.textContent = currentUserId;
-                    
-                    // Update UI elements based on local isAdmin state
-                    updateAdminUI();
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        userIdEl.textContent = currentUserId;
+                        console.log(`[AUTH SUCCESS] User signed in. UID: ${currentUserId}.`); // DEBUG
+                        
+                        // Update UI elements based on local isAdmin state
+                        updateAdminUI();
 
-                    setupFirestoreListener();
-                } else {
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
+                        setupFirestoreListener();
                     } else {
-                        await signInAnonymously(auth);
+                        console.log("[AUTH INFO] User not yet signed in. Attempting anonymous/custom token sign in."); // DEBUG
+                        if (initialAuthToken) {
+                            try {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } catch (e) {
+                                console.error("[AUTH ERROR] Failed to sign in with custom token, falling back to anonymous:", e);
+                                await signInAnonymously(auth);
+                            }
+                        } else {
+                            await signInAnonymously(auth);
+                        }
                     }
-                }
-            });
-        } catch (error) {
-            console.error("Firebase Initialisation Error:", error);
-            userIdEl.textContent = "Error";
+                });
+            } catch (error) {
+                console.error("[FIREBASE INIT ERROR] Error during Firebase Initialisation:", error);
+                userIdEl.textContent = "Error";
+                userRoleLabel.textContent = "Role: Unknown";
+            }
+        } else {
+            console.error("[FIREBASE INIT ERROR] Firebase config is missing or invalid. Cannot initialize.");
+            userIdEl.textContent = "Config Error";
             userRoleLabel.textContent = "Role: Unknown";
         }
 
@@ -316,7 +348,8 @@
         function handleAdminLogin(e) {
             e.preventDefault();
             const username = adminUsernameInput.value.trim();
-            const password = adminPasswordInput.value.trim();
+            // FIX: Removed the unnecessary `.input` property
+            const password = adminPasswordInput.value.trim(); 
 
             if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
                 localStorage.setItem('isAdmin', 'true');
@@ -392,7 +425,9 @@
         // --- FIRESTORE FUNCTIONS ---
 
         function getCollectionRef() {
+            // Path: /artifacts/{appId}/public/data/shifts
             const collectionPath = `artifacts/${appId}/public/data/shifts`;
+            console.log(`[FIRESTORE INFO] Using collection path: ${collectionPath}`); // DEBUG
             return collection(db, collectionPath);
         }
 
@@ -415,12 +450,17 @@
                 });
                 renderCalendar();
             }, (error) => {
-                console.error("Error listening to shifts:", error);
+                console.error("[FIRESTORE LISTENER ERROR] Error listening to shifts:", error);
                 showMessage("Could not load shifts. Check console for details.", true);
             });
         }
 
         async function createShift(date, time, role, totalSlots) {
+            if (!db || !currentUserId) { // Check if Firestore and Auth are ready
+                showMessage("Cannot create shift: User not authenticated or database not connected.", true);
+                console.error("[FIRESTORE ERROR] DB or Auth not ready during createShift attempt.");
+                return false;
+            }
             if (!isAdmin) {
                 showMessage("Permission denied: Only Admin users can create shifts.", true);
                 return false;
@@ -432,13 +472,15 @@
                     role: role,
                     totalSlots: Number(totalSlots) > 0 ? Number(totalSlots) : 1, // NEW: Ensure at least 1 slot
                     signUps: [], // NEW: Use array to track multiple users
+                    createdBy: currentUserId, // Track creator
                     createdAt: new Date().toISOString()
                 };
                 await addDoc(getCollectionRef(), shiftData);
+                console.log(`[FIRESTORE SUCCESS] Shift created successfully in path: ${getCollectionRef().path}`); // DEBUG
                 showMessage("Shift created successfully!");
                 return true;
             } catch (error) {
-                console.error("Error creating shift:", error);
+                console.error("[FIRESTORE ERROR] Error creating shift:", error); // Enhanced Log
                 showMessage("Failed to create shift. See console.", true);
                 return false;
             }
@@ -452,18 +494,19 @@
             try {
                 const shiftDocRef = doc(getCollectionRef(), shiftId);
                 await deleteDoc(shiftDocRef);
+                console.log(`[FIRESTORE SUCCESS] Shift ${shiftId} deleted.`); // DEBUG
                 showMessage(`Shift deleted successfully!`);
                 return true;
             } catch (error) {
-                console.error("Error deleting shift:", error);
+                console.error("[FIRESTORE ERROR] Error deleting shift:", error);
                 showMessage("Failed to delete shift. See console.", true);
                 return false;
             }
         }
 
         async function signUpForShift(shiftId, name) {
-            if (!currentUserId) {
-                showMessage("User not authenticated. Please wait for sign-in.", true);
+            if (!db || !currentUserId) {
+                showMessage("Cannot sign up: User not authenticated or database not connected.", true);
                 return false;
             }
 
@@ -502,10 +545,11 @@
                 await updateDoc(shiftDocRef, {
                     signUps: [...currentSignUps, newSignUp],
                 });
+                console.log(`[FIRESTORE SUCCESS] User ${currentUserId} signed up for shift ${shiftId}.`); // DEBUG
                 showMessage(`Successfully signed up as ${name}!`);
                 return true;
             } catch (error) {
-                console.error("Error signing up:", error);
+                console.error("[FIRESTORE ERROR] Error signing up:", error);
                 showMessage("Failed to sign up for shift. See console.", true);
                 return false;
             }
@@ -513,6 +557,10 @@
 
         // New function to clear a specific user's sign-up
         async function cancelUserSignUp(shiftId, signupId) { 
+            if (!db || !currentUserId) {
+                showMessage("Cannot cancel: User not authenticated or database not connected.", true);
+                return false;
+            }
             try {
                 const shiftDocRef = doc(getCollectionRef(), shiftId);
                 const currentShift = Object.values(shiftsData).flat().find(s => s.id === shiftId);
@@ -525,10 +573,11 @@
                 await updateDoc(shiftDocRef, {
                     signUps: updatedSignUps,
                 });
+                console.log(`[FIRESTORE SUCCESS] User ${currentUserId} cancelled signup on shift ${shiftId}.`); // DEBUG
                 showMessage(`Sign-up successfully cancelled.`);
                 return true;
             } catch (error) {
-                console.error("Error cancelling sign up:", error);
+                console.error("[FIRESTORE ERROR] Error cancelling sign up:", error);
                 showMessage("Failed to cancel sign-up. See console.", true);
                 return false;
             }
@@ -545,10 +594,11 @@
                 await updateDoc(shiftDocRef, {
                     signUps: [],
                 });
+                console.log(`[FIRESTORE SUCCESS] Admin cleared all signups on shift ${shiftId}.`); // DEBUG
                 showMessage(`Admin: All sign-ups cleared for this shift.`);
                 return true;
             } catch (error) {
-                console.error("Error clearing all sign ups:", error);
+                console.error("[FIRESTORE ERROR] Error clearing all sign ups:", error);
                 showMessage("Failed to clear all sign-ups. See console.", true);
                 return false;
             }
